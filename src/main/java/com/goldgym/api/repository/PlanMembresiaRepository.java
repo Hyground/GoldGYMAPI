@@ -1,9 +1,8 @@
 package com.goldgym.api.repository;
 
-import com.goldgym.api.domain.PlanMembresia;
+import com.goldgym.api.domain.*;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.UUID;
 
-public interface PlanMembresiaRepository extends JpaRepository<PlanMembresia, UUID> {
-  boolean existsByNombreIgnoreCase(String nombre);
+public interface PlanMembresiaRepository extends JpaRepository<PlanMembresia, Long> {
+    
 }

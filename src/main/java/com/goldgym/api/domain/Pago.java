@@ -3,16 +3,15 @@ package com.goldgym.api.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-@Entity @Table(name = "membresia",
+@Entity @Table(name = "pago",
         indexes = {
-          @Index(name="idx_membresia_cliente", columnList = "cliente_id"),
-          @Index(name="idx_membresia_estado", columnList = "estado")
+          @Index(name="idx_pago_membresia", columnList = "membresia_id"),
+          @Index(name="idx_pago_cliente", columnList = "cliente_id")
         })
-public class Membresia {
+public class Pago {
 
   @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -22,23 +21,26 @@ public class Membresia {
   private Cliente cliente;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "plan_id", nullable = false)
-  private PlanMembresia plan;
+  @JoinColumn(name = "membresia_id", nullable = false)
+  private Membresia membresia;
 
-  @Column(name = "fecha_inicio", nullable = false)
-  private LocalDate fechaInicio;
+  @Column(nullable = false, precision = 10, scale = 2)
+  private BigDecimal monto;
 
-  @Column(name = "fecha_fin", nullable = false)
-  private LocalDate fechaFin;
+  @Column(length = 10, nullable = false)
+  private String moneda = "GTQ";
 
-  @Column(name = "precio_contratado", precision = 10, scale = 2, nullable = false)
-  private BigDecimal precioContratado;
+  @Column(name = "metodo_pago", length = 30, nullable = false)
+  private String metodoPago;
 
-  @Column(length = 20, nullable = false)
-  private String estado = "ACTIVA";
+  @Column(name = "pagado_en", nullable = false)
+  private LocalDateTime pagadoEn;
+
+  @Column(length = 120)
+  private String referencia;
 
   @Column(columnDefinition = "text")
-  private String nota;
+  private String notas;
 
   @Column(name = "creado_en", nullable = false)
   private LocalDateTime creadoEn;
@@ -48,8 +50,8 @@ public class Membresia {
 
   @PrePersist
   void prePersist() {
-    this.creadoEn = this.actualizadoEn = LocalDateTime.now();
-    if (estado == null) estado = "ACTIVA";
+    this.creadoEn = this.actualizadoEn = this.pagadoEn = LocalDateTime.now();
+    if (moneda == null) moneda = "GTQ";
   }
 
   @PreUpdate

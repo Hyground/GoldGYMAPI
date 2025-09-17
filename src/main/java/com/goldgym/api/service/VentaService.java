@@ -1,5 +1,5 @@
 package com.goldgym.api.service;
 
-public class MembresiaService {
+public class VentaService {
     
 }

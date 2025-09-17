@@ -3,29 +3,32 @@ package com.goldgym.api.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-@Entity @Table(name = "plan_membresia")
-public class PlanMembresia {
+@Entity @Table(name = "empleado",
+        indexes = { @Index(name="uk_empleado_codigo", columnList = "codigo_empleado", unique = true) })
+public class Empleado {
 
   @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(length = 80, nullable = false, unique = true)
-  private String nombre;
+  @OneToOne(optional = false, fetch = FetchType.LAZY)
+  @JoinColumn(name = "persona_id", nullable = false, unique = true)
+  private Persona persona;
 
-  @Column(columnDefinition = "text")
-  private String descripcion;
+  @Column(name = "codigo_empleado", length = 50, unique = true)
+  private String codigoEmpleado;
 
-  @Column(precision = 10, scale = 2, nullable = false)
-  private BigDecimal precio;
+  @Column(name = "fecha_contratacion")
+  private LocalDate fechaContratacion;
 
-  @Column(name = "duracion_dias", nullable = false)
-  private Integer duracionDias;
+  @Column(precision = 10, scale = 2)
+  private BigDecimal salario;
 
-  @Column(name = "reglas_acceso", columnDefinition = "text")
-  private String reglasAcceso;
+  @Column(length = 30)
+  private String estado;
 
   @Column(nullable = false)
   private Boolean activo = true;

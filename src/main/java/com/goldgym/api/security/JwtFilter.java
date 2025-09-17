@@ -1,5 +1,5 @@
 package com.goldgym.api.security;
 
-public class JwtService {
+public class JwtFilter {
     
 }

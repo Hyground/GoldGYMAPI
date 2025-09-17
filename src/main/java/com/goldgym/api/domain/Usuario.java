@@ -2,55 +2,54 @@ package com.goldgym.api.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
+import java.time.LocalDateTime;
 
-import java.util.*;
-
-@Entity
-@Table(name = "usuario")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Usuario implements UserDetails {
+@Entity @Table(name = "usuario",
+        indexes = {
+          @Index(name="uk_usuario_username", columnList = "username", unique = true)
+        })
+public class Usuario {
 
-  @Id
-  @Column(columnDefinition = "uuid")
-  private UUID id;
+  @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-  @PrePersist
-  void pre() {
-    if (id == null) id = UUID.randomUUID();
-    if (rol == null || rol.isBlank()) rol = "cliente";   // safety por si no viene en builder
-    if (activo == null) activo = true;
-  }
-
-  @OneToOne(optional = false)
-  @JoinColumn(name = "persona_id", unique = true)
+  @ManyToOne(optional = false, fetch = FetchType.LAZY)
+  @JoinColumn(name = "persona_id", nullable = false)
   private Persona persona;
 
-  @Column(unique = true)
-  private String username;                // correo o alias
+  @Column(length = 50, nullable = false, unique = true)
+  private String username;
 
-  @Column(name = "password_hash", nullable = false)
-  private String password;                // hash (BCrypt)
+  @Column(name = "password_hash", length = 255, nullable = false)
+  private String passwordHash;
 
-  @Builder.Default
-  private String rol = "cliente";
+  @Column(name = "ultimo_login")
+  private LocalDateTime ultimoLogin;
 
-  @Builder.Default
+  @Column(nullable = false)
+  private Boolean bloqueado = false;
+
+  @Column(name = "intentos_fallidos", nullable = false)
+  private Integer intentosFallidos = 0;
+
+  @Column(nullable = false)
   private Boolean activo = true;
 
-  @Override public String getUsername() { return username; }
-  @Override public String getPassword() { return password; }
+  @Column(name = "creado_en", nullable = false)
+  private LocalDateTime creadoEn;
 
-  @Override
-  public Collection<? extends GrantedAuthority> getAuthorities() {
-    String r = (rol == null || rol.isBlank()) ? "CLIENTE" : rol.toUpperCase();
-    return List.of(new SimpleGrantedAuthority("ROLE_" + r));
+  @Column(name = "actualizado_en", nullable = false)
+  private LocalDateTime actualizadoEn;
+
+  @PrePersist
+  void prePersist() {
+    this.creadoEn = this.actualizadoEn = LocalDateTime.now();
+    if (bloqueado == null) bloqueado = false;
+    if (activo == null) activo = true;
+    if (intentosFallidos == null) intentosFallidos = 0;
   }
 
-  @Override public boolean isAccountNonExpired() { return true; }
-  @Override public boolean isAccountNonLocked() { return true; }
-  @Override public boolean isCredentialsNonExpired() { return true; }
-  @Override public boolean isEnabled() { return Boolean.TRUE.equals(activo); }
+  @PreUpdate
+  void preUpdate() { this.actualizadoEn = LocalDateTime.now(); }
 }
