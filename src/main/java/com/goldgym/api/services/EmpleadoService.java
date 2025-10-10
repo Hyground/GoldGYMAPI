@@ -19,8 +19,12 @@ import java.util.stream.Collectors;
 public class EmpleadoService {
 
     private final EmpleadoRepository empleadoRepository;
+    private final PersonaService personaService;
 
     public Empleado crear(Empleado empleado) {
+        if (empleado.getPersona() != null) {
+            empleado.setPersona(personaService.crear(empleado.getPersona()));
+        }
         empleado.setCreadoEn(LocalDateTime.now());
         return empleadoRepository.save(empleado);
     }
@@ -28,7 +32,16 @@ public class EmpleadoService {
     public Empleado actualizar(Long id, Empleado actualizado) {
         Empleado existente = empleadoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Empleado no encontrado"));
-        existente.setPersona(actualizado.getPersona());
+
+        if (actualizado.getPersona() != null) {
+            if (existente.getPersona() != null) {
+                actualizado.getPersona().setId(existente.getPersona().getId());
+                existente.setPersona(personaService.actualizar(existente.getPersona().getId(), actualizado.getPersona()));
+            } else {
+                existente.setPersona(personaService.crear(actualizado.getPersona()));
+            }
+        }
+
         existente.setCodigoEmpleado(actualizado.getCodigoEmpleado());
         existente.setFechaContratacion(actualizado.getFechaContratacion());
         existente.setSalario(actualizado.getSalario());

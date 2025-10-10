@@ -19,8 +19,12 @@ import java.util.stream.Collectors;
 public class ClienteService {
 
     private final ClienteRepository clienteRepository;
+    private final PersonaService personaService;
 
     public Cliente crear(Cliente cliente) {
+        if (cliente.getPersona() != null) {
+            cliente.setPersona(personaService.crear(cliente.getPersona()));
+        }
         cliente.setCreadoEn(LocalDateTime.now());
         return clienteRepository.save(cliente);
     }
@@ -28,7 +32,16 @@ public class ClienteService {
     public Cliente actualizar(Long id, Cliente actualizado) {
         Cliente existente = clienteRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente no encontrado"));
-        existente.setPersona(actualizado.getPersona());
+
+        if (actualizado.getPersona() != null) {
+            if (existente.getPersona() != null) {
+                actualizado.getPersona().setId(existente.getPersona().getId());
+                existente.setPersona(personaService.actualizar(existente.getPersona().getId(), actualizado.getPersona()));
+            } else {
+                existente.setPersona(personaService.crear(actualizado.getPersona()));
+            }
+        }
+
         existente.setCodigo(actualizado.getCodigo());
         existente.setFechaInicio(actualizado.getFechaInicio());
         existente.setEstado(actualizado.getEstado());

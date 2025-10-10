@@ -1,6 +1,13 @@
 package com.goldgym.api.services;
 
+import com.goldgym.api.dto.request.VentaRequestDTO;
+import com.goldgym.api.entities.Cliente;
+import com.goldgym.api.entities.DetalleVenta;
+import com.goldgym.api.entities.Producto;
 import com.goldgym.api.entities.Venta;
+import com.goldgym.api.repository.ClienteRepository;
+import com.goldgym.api.repository.DetalleVentaRepository;
+import com.goldgym.api.repository.ProductoRepository;
 import com.goldgym.api.repository.VentaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -9,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -17,13 +25,33 @@ import java.util.List;
 public class VentaService {
 
     private final VentaRepository ventaRepository;
+    private final ClienteRepository clienteRepository;
+    private final ProductoRepository productoRepository;
+    private final DetalleVentaRepository detalleVentaRepository;
 
-    public Venta crear(Venta venta) {
+    public Venta crear(VentaRequestDTO ventaRequest) {
+        Cliente cliente = clienteRepository.findById(ventaRequest.getClienteId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente no encontrado"));
+
+        Venta venta = new Venta();
+        venta.setCliente(cliente);
         venta.setFechaVenta(LocalDateTime.now());
-        if (venta.getDetalles() != null) {
-            venta.getDetalles().forEach(d -> d.setVenta(venta));
+        venta.setTotal(ventaRequest.getTotal());
+        Venta savedVenta = ventaRepository.save(venta);
+
+        List<DetalleVenta> detalles = new ArrayList<>();
+        for (Long productoId : ventaRequest.getProductosIds()) {
+            Producto producto = productoRepository.findById(productoId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado"));
+            DetalleVenta detalle = new DetalleVenta();
+            detalle.setVenta(savedVenta);
+            detalle.setProducto(producto);
+            detalle.setPrecioUnitario(producto.getPrecioVenta());
+            detalle.setCantidad(1.0); // Corregido a Double
+            detalles.add(detalleVentaRepository.save(detalle));
         }
-        return ventaRepository.save(venta);
+        savedVenta.setDetalles(detalles);
+        return savedVenta;
     }
 
     public Venta actualizar(Long id, Venta actualizado) {

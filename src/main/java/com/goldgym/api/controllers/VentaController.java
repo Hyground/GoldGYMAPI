@@ -1,5 +1,6 @@
 package com.goldgym.api.controllers;
 
+import com.goldgym.api.dto.request.VentaRequestDTO;
 import com.goldgym.api.entities.Venta;
 import com.goldgym.api.services.VentaService;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +17,8 @@ public class VentaController {
     private final VentaService ventaService;
 
     @PostMapping
-    public ResponseEntity<Venta> crear(@RequestBody Venta venta) {
-        return ResponseEntity.ok(ventaService.crear(venta));
+    public ResponseEntity<Venta> crear(@RequestBody VentaRequestDTO ventaRequest) {
+        return ResponseEntity.ok(ventaService.crear(ventaRequest));
     }
 
     @PutMapping("/{id}")

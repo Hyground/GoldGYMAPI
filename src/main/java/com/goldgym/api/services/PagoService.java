@@ -1,6 +1,9 @@
 package com.goldgym.api.services;
 
+import com.goldgym.api.dto.response.ClientePagoStatusDTO;
+import com.goldgym.api.entities.Cliente;
 import com.goldgym.api.entities.Pago;
+import com.goldgym.api.repository.ClienteRepository;
 import com.goldgym.api.repository.PagoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -8,8 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -17,24 +22,22 @@ import java.util.List;
 public class PagoService {
 
     private final PagoRepository pagoRepository;
+    private final ClienteRepository clienteRepository;
 
     public Pago crear(Pago pago) {
         pago.setCreadoEn(LocalDateTime.now());
-        pago.setPagadoEn(LocalDateTime.now());
         return pagoRepository.save(pago);
     }
 
     public Pago actualizar(Long id, Pago actualizado) {
         Pago existente = pagoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pago no encontrado"));
-        existente.setCliente(actualizado.getCliente());
         existente.setMembresia(actualizado.getMembresia());
-        existente.setMonto(actualizado.getMonto());
-        existente.setMoneda(actualizado.getMoneda());
-        existente.setMetodoPago(actualizado.getMetodoPago());
-        existente.setPagadoEn(actualizado.getPagadoEn());
-        existente.setReferencia(actualizado.getReferencia());
-        existente.setNotas(actualizado.getNotas());
+        existente.setCliente(actualizado.getCliente());
+        existente.setFechaPago(actualizado.getFechaPago());
+        existente.setMontoPagado(actualizado.getMontoPagado());
+        existente.setFechaVencimiento(actualizado.getFechaVencimiento());
+        existente.setEstado(actualizado.getEstado());
         existente.setActualizadoEn(LocalDateTime.now());
         return pagoRepository.save(existente);
     }
@@ -55,5 +58,58 @@ public class PagoService {
     public Pago obtenerPorId(Long id) {
         return pagoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pago no encontrado"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClientePagoStatusDTO> getClientesConEstadoPago() {
+        List<Cliente> clientes = clienteRepository.findAll();
+        return clientes.stream().map(cliente -> {
+            ClientePagoStatusDTO dto = new ClientePagoStatusDTO();
+            dto.setId(cliente.getId());
+            dto.setNombreCompleto(cliente.getPersona().getNombre() + " " + cliente.getPersona().getApellido());
+            dto.setCorreo(cliente.getPersona().getCorreo());
+            dto.setCodigoCliente(cliente.getCodigo());
+
+            // Buscar el último pago del cliente
+            // Asumimos que el repositorio de pagos tiene un método para esto
+            // Si no, necesitaríamos añadirlo: findTopByClienteOrderByFechaVencimientoDesc
+            Pago ultimoPago = pagoRepository.findTopByClienteOrderByFechaVencimientoDesc(cliente)
+                    .orElse(null);
+
+            if (ultimoPago == null) {
+                dto.setEstadoPago("ROJO"); // Sin pagos, se considera en deuda
+                dto.setFechaVencimiento(null);
+                dto.setMontoPendiente(0.0); // O un valor por defecto
+            } else {
+                dto.setFechaVencimiento(ultimoPago.getFechaVencimiento());
+                switch (ultimoPago.getEstado()) {
+                    case "PAGADO":
+                        dto.setEstadoPago("VERDE");
+                        dto.setMontoPendiente(0.0);
+                        break;
+                    case "PENDIENTE":
+                        if (ultimoPago.getFechaVencimiento().isBefore(LocalDate.now())) {
+                            dto.setEstadoPago("ROJO"); // Vencido
+                            dto.setMontoPendiente(ultimoPago.getMontoPagado()); // Asumiendo que montoPagado es el monto total del pago
+                        } else if (ultimoPago.getFechaVencimiento().isBefore(LocalDate.now().plusDays(7))) {
+                            dto.setEstadoPago("AMARILLO"); // Próximo a vencer
+                            dto.setMontoPendiente(ultimoPago.getMontoPagado());
+                        } else {
+                            dto.setEstadoPago("VERDE"); // Pendiente pero con fecha lejana, se considera 'bien' por ahora
+                            dto.setMontoPendiente(ultimoPago.getMontoPagado());
+                        }
+                        break;
+                    case "VENCIDO":
+                        dto.setEstadoPago("ROJO");
+                        dto.setMontoPendiente(ultimoPago.getMontoPagado());
+                        break;
+                    default:
+                        dto.setEstadoPago("ROJO"); // Estado desconocido
+                        dto.setMontoPendiente(ultimoPago.getMontoPagado());
+                        break;
+                }
+            }
+            return dto;
+        }).collect(Collectors.toList());
     }
 }

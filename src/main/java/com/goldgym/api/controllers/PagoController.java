@@ -1,5 +1,6 @@
 package com.goldgym.api.controllers;
 
+import com.goldgym.api.dto.response.ClientePagoStatusDTO;
 import com.goldgym.api.entities.Pago;
 import com.goldgym.api.services.PagoService;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,11 @@ public class PagoController {
     @GetMapping
     public ResponseEntity<List<Pago>> listar() {
         return ResponseEntity.ok(pagoService.listar());
+    }
+
+    @GetMapping("/clientes-status")
+    public ResponseEntity<List<ClientePagoStatusDTO>> getClientesEstadoPago() {
+        return ResponseEntity.ok(pagoService.getClientesConEstadoPago());
     }
 
     @GetMapping("/{id}")

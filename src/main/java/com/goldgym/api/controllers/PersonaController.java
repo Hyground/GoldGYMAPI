@@ -1,5 +1,6 @@
 package com.goldgym.api.controllers;
 
+import com.goldgym.api.dto.request.PersonaRequestDTO;
 import com.goldgym.api.entities.Persona;
 import com.goldgym.api.services.PersonaService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,12 @@ import java.util.List;
 public class PersonaController {
 
     private final PersonaService personaService;
+
+    @PostMapping("/unified")
+    public ResponseEntity<String> createUnified(@RequestBody PersonaRequestDTO request) {
+        personaService.createUnified(request);
+        return ResponseEntity.ok("Entidad creada con éxito");
+    }
 
     @PostMapping
     public ResponseEntity<Persona> crear(@RequestBody Persona persona) {

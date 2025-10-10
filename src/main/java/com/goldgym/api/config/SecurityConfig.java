@@ -4,7 +4,6 @@ import com.goldgym.api.jwt.JwtRequestFilter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -43,12 +42,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login").permitAll()
-                        // Reglas para Clientes
-                        .requestMatchers(HttpMethod.PUT, "/api/clientes/**").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.DELETE, "/api/clientes/**").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers(HttpMethod.POST, "/api/clientes").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
-                        // Regla genérica para el resto de la API
-                        .requestMatchers("/api/**").hasAuthority("ADMINISTRADOR")
+                        .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
