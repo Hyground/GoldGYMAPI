@@ -1,5 +1,6 @@
 package com.goldgym.api.controllers;
 
+import com.goldgym.api.dto.response.EmpleadoResponseDTO;
 import com.goldgym.api.entities.Empleado;
 import com.goldgym.api.services.EmpleadoService;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,7 @@ public class EmpleadoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Empleado>> listar() {
+    public ResponseEntity<List<EmpleadoResponseDTO>> listar() {
         return ResponseEntity.ok(empleadoService.listar());
     }
 

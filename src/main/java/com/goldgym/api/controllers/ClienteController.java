@@ -1,9 +1,11 @@
 package com.goldgym.api.controllers;
 
+import com.goldgym.api.dto.response.ClienteResponseDTO;
 import com.goldgym.api.entities.Cliente;
 import com.goldgym.api.services.ClienteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,18 +23,20 @@ public class ClienteController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
     public ResponseEntity<Cliente> actualizar(@PathVariable Long id, @RequestBody Cliente cliente) {
         return ResponseEntity.ok(clienteService.actualizar(id, cliente));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         clienteService.eliminar(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping
-    public ResponseEntity<List<Cliente>> listar() {
+    public ResponseEntity<List<ClienteResponseDTO>> listar() {
         return ResponseEntity.ok(clienteService.listar());
     }
 

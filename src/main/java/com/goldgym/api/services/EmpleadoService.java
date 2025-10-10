@@ -1,5 +1,6 @@
 package com.goldgym.api.services;
 
+import com.goldgym.api.dto.response.EmpleadoResponseDTO;
 import com.goldgym.api.entities.Empleado;
 import com.goldgym.api.repository.EmpleadoRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,8 +46,25 @@ public class EmpleadoService {
     }
 
     @Transactional(readOnly = true)
-    public List<Empleado> listar() {
-        return empleadoRepository.findAll();
+    public List<EmpleadoResponseDTO> listar() {
+        return empleadoRepository.findAll().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    private EmpleadoResponseDTO convertToDto(Empleado empleado) {
+        EmpleadoResponseDTO dto = new EmpleadoResponseDTO();
+        dto.setId(empleado.getId());
+        dto.setActivo(empleado.getActivo());
+        dto.setSalario(empleado.getSalario());
+        dto.setFechaContratacion(empleado.getFechaContratacion());
+        // La entidad Empleado no tiene 'puesto', se puede añadir si es necesario.
+        // dto.setPuesto(empleado.getPuesto()); 
+        if (empleado.getPersona() != null) {
+            dto.setNombrePersona(empleado.getPersona().getNombre() + " " + empleado.getPersona().getApellido());
+            dto.setCorreoPersona(empleado.getPersona().getCorreo());
+        }
+        return dto;
     }
 
     @Transactional(readOnly = true)

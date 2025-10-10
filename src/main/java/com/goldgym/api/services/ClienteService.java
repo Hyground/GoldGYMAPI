@@ -1,5 +1,6 @@
 package com.goldgym.api.services;
 
+import com.goldgym.api.dto.response.ClienteResponseDTO;
 import com.goldgym.api.entities.Cliente;
 import com.goldgym.api.repository.ClienteRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,8 +45,22 @@ public class ClienteService {
     }
 
     @Transactional(readOnly = true)
-    public List<Cliente> listar() {
-        return clienteRepository.findAll();
+    public List<ClienteResponseDTO> listar() {
+        return clienteRepository.findAll().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    private ClienteResponseDTO convertToDto(Cliente cliente) {
+        ClienteResponseDTO dto = new ClienteResponseDTO();
+        dto.setId(cliente.getId());
+        dto.setCodigoCliente(cliente.getCodigo());
+        dto.setActivo(cliente.getActivo());
+        if (cliente.getPersona() != null) {
+            dto.setNombrePersona(cliente.getPersona().getNombre() + " " + cliente.getPersona().getApellido());
+            dto.setEmailPersona(cliente.getPersona().getCorreo());
+        }
+        return dto;
     }
 
     @Transactional(readOnly = true)
