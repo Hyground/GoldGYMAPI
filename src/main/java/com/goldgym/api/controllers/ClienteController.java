@@ -1,3 +1,5 @@
+// Archivo: ClienteController.java
+
 package com.goldgym.api.controllers;
 
 import com.goldgym.api.dto.response.ClienteResponseDTO;
@@ -5,7 +7,7 @@ import com.goldgym.api.entities.Cliente;
 import com.goldgym.api.services.ClienteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize; // Asegúrate de que este import exista
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -41,8 +43,10 @@ public class ClienteController {
     }
 
     @GetMapping("/{id}")
-    // Permite que cualquier usuario autenticado acceda a este endpoint:
-    @PreAuthorize("isAuthenticated()")
+    // <-- ¡SOLUCIÓN AQUÍ! -->
+    // Se requiere el permiso de Administrador o Empleado para obtener los datos
+    // completos del cliente y poder editarlos.
+    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR')") 
     public ResponseEntity<Cliente> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(clienteService.obtenerPorId(id));
     }
