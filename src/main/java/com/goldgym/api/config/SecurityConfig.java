@@ -17,11 +17,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import java.util.Arrays;
-
 import static org.springframework.security.config.Customizer.withDefaults;
-
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 @Configuration
@@ -42,7 +39,15 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Permite el login sin autenticación
                         .requestMatchers("/api/auth/login").permitAll()
+                        // Reglas basadas en roles
+                        .requestMatchers("/api/clientes").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
+                        .requestMatchers("/api/empleados").hasAnyAuthority("ADMINISTRADOR")
+                        .requestMatchers("/api/membresias").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
+                        .requestMatchers("/api/pagos").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
+                        .requestMatchers("/api/productos").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO", "CLIENTE") 
+                        // El resto de los endpoints requieren autenticación (pero no se especifica el rol)
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
@@ -59,11 +64,10 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
     @Bean
     public GrantedAuthorityDefaults grantedAuthorityDefaults() {
-        // Con esto, le decimos a Spring Security que no añada el prefijo "ROLE_"
-        // y que use los nombres de los roles tal como están (ej: "ADMINISTRADOR").
-        return new GrantedAuthorityDefaults(""); // El string vacío elimina el prefijo.
+        return new GrantedAuthorityDefaults("");
     }
 
     @Bean
