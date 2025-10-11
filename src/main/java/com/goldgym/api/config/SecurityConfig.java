@@ -8,6 +8,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.core.GrantedAuthorityDefaults;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -57,6 +58,12 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+    @Bean
+    public GrantedAuthorityDefaults grantedAuthorityDefaults() {
+        // Con esto, le decimos a Spring Security que no añada el prefijo "ROLE_"
+        // y que use los nombres de los roles tal como están (ej: "ADMINISTRADOR").
+        return new GrantedAuthorityDefaults(""); // El string vacío elimina el prefijo.
     }
 
     @Bean
