@@ -61,6 +61,11 @@ public class PagoService {
     }
 
     @Transactional(readOnly = true)
+    public List<Pago> obtenerPagosPorCliente(Long clienteId) {
+        return pagoRepository.findByClienteId(clienteId);
+    }
+    
+    @Transactional(readOnly = true)
     public List<ClientePagoStatusDTO> getClientesConEstadoPago() {
         List<Cliente> clientes = clienteRepository.findAll();
         return clientes.stream().map(cliente -> {
@@ -82,20 +87,30 @@ public class PagoService {
                 dto.setMontoPendiente(0.0); // O un valor por defecto
             } else {
                 dto.setFechaVencimiento(ultimoPago.getFechaVencimiento());
-                switch (ultimoPago.getEstado()) {
+                
+                // --- CORRECCIÓN DE NULLPOINTEREXCEPTION AQUÍ ---
+                // Obtener el estado, o usar una cadena segura ("") si es null
+                String estadoPago = ultimoPago.getEstado();
+                if (estadoPago == null || estadoPago.isEmpty()) {
+                    dto.setEstadoPago("ROJO"); // Asumir el peor caso si el estado no está definido
+                    dto.setMontoPendiente(0.0);
+                    return dto; // Salir del switch
+                }
+                switch (estadoPago) { // Usamos la variable local segura
                     case "PAGADO":
                         dto.setEstadoPago("VERDE");
                         dto.setMontoPendiente(0.0);
                         break;
                     case "PENDIENTE":
+                        // Si está pendiente, se verifica el vencimiento
                         if (ultimoPago.getFechaVencimiento().isBefore(LocalDate.now())) {
                             dto.setEstadoPago("ROJO"); // Vencido
-                            dto.setMontoPendiente(ultimoPago.getMontoPagado()); // Asumiendo que montoPagado es el monto total del pago
+                            dto.setMontoPendiente(ultimoPago.getMontoPagado()); 
                         } else if (ultimoPago.getFechaVencimiento().isBefore(LocalDate.now().plusDays(7))) {
                             dto.setEstadoPago("AMARILLO"); // Próximo a vencer
                             dto.setMontoPendiente(ultimoPago.getMontoPagado());
                         } else {
-                            dto.setEstadoPago("VERDE"); // Pendiente pero con fecha lejana, se considera 'bien' por ahora
+                            dto.setEstadoPago("VERDE"); // Pendiente pero con fecha lejana
                             dto.setMontoPendiente(ultimoPago.getMontoPagado());
                         }
                         break;
@@ -104,7 +119,7 @@ public class PagoService {
                         dto.setMontoPendiente(ultimoPago.getMontoPagado());
                         break;
                     default:
-                        dto.setEstadoPago("ROJO"); // Estado desconocido
+                        dto.setEstadoPago("ROJO"); // Estado desconocido en el switch
                         dto.setMontoPendiente(ultimoPago.getMontoPagado());
                         break;
                 }
