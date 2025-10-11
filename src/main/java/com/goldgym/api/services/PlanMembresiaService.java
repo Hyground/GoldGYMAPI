@@ -2,6 +2,7 @@ package com.goldgym.api.services;
 
 import com.goldgym.api.entities.PlanMembresia;
 import com.goldgym.api.repository.PlanMembresiaRepository;
+import com.goldgym.api.dto.response.PlanAnaliticasDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -52,5 +53,11 @@ public class PlanMembresiaService {
     public PlanMembresia obtenerPorId(Long id) {
         return planMembresiaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Plan de membresía no encontrado"));
+    }
+    
+    // NUEVO MÉTODO DE ANALÍTICA
+    @Transactional(readOnly = true)
+    public List<PlanAnaliticasDTO> obtenerAnaliticas() {
+        return planMembresiaRepository.findPlanAnaliticas();
     }
 }
