@@ -41,6 +41,8 @@ public class ClienteController {
     }
 
     @GetMapping("/{id}")
+    // Permite que cualquier usuario autenticado acceda a este endpoint:
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Cliente> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(clienteService.obtenerPorId(id));
     }

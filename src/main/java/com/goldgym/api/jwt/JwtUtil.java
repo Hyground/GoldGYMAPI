@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.List;
 
 @Component
 public class JwtUtil {
@@ -32,6 +33,10 @@ public class JwtUtil {
 
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
+         List<String> roles = userDetails.getAuthorities().stream()
+            .map(grantedAuthority -> grantedAuthority.getAuthority())
+            .toList();
+            claims.put("roles", roles);
         return createToken(claims, userDetails.getUsername());
     }
 
