@@ -1,25 +1,32 @@
 package com.goldgym.api.controllers;
 
 import com.goldgym.api.entities.Venta;
+import com.goldgym.api.repository.ClienteRepository;
+import com.goldgym.api.repository.MembresiaRepository;
 import com.goldgym.api.repository.VentaRepository;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/dashboard") // 👈 Importante: incluye /api si tus rutas públicas lo usan
-@CrossOrigin(origins = {"http://127.0.0.1:5500", "http://localhost:5500"}) // 🔓 Permite llamadas desde tu frontend local
+@RequestMapping("/api/dashboard")
+@CrossOrigin(origins = {"http://127.0.0.1:5500", "http://localhost:5500"})
 @AllArgsConstructor
 public class DashboardEmpleadoController {
 
+    private final ClienteRepository clienteRepository;
     private final VentaRepository ventaRepository;
+    private final MembresiaRepository membresiaRepository;
 
     // =====================================================
-    // 🧾 ENDPOINT: Actividad Reciente (para la tabla del dashboard)
+    // 🧾 ENDPOINT: Actividad Reciente
     // =====================================================
     @GetMapping("/actividad")
     public List<ActividadReciente> getActividadReciente() {
@@ -31,6 +38,28 @@ public class DashboardEmpleadoController {
                         v.getFechaVenta()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    // =====================================================
+    // 📊 ENDPOINT: Resumen general del dashboard
+    // =====================================================
+    @GetMapping("/resumen")
+    public Map<String, Object> obtenerResumen() {
+        // 🟢 Clientes activos
+        long clientesActivos = clienteRepository.countByActivoTrue();
+
+        // 🟡 Ventas del día
+        BigDecimal ventasDelDia = ventaRepository.sumTotalByFecha(LocalDate.now());
+        if (ventasDelDia == null) ventasDelDia = BigDecimal.ZERO;
+
+        // 🔴 Membresías vencidas
+        long membresiasVencidas = membresiaRepository.countByFechaFinBefore(LocalDate.now());
+
+        return Map.of(
+                "clientesActivos", clientesActivos,
+                "ventasDelDia", ventasDelDia,
+                "membresiasVencidas", membresiasVencidas
+        );
     }
 
     // =====================================================
@@ -49,7 +78,7 @@ public class DashboardEmpleadoController {
     }
 
     // =====================================================
-    // 🧱 DTO INTERNO: Lo que se envía al frontend
+    // 🧱 DTO INTERNO: Actividad Reciente
     // =====================================================
     @Data
     @AllArgsConstructor
@@ -60,7 +89,7 @@ public class DashboardEmpleadoController {
     }
 
     // =====================================================
-    // 🧪 ENDPOINT DE PRUEBA: Verificar conexión del dashboard
+    // 🧪 ENDPOINT DE PRUEBA
     // =====================================================
     @GetMapping("/test")
     public String test() {
