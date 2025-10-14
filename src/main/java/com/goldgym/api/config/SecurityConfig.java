@@ -17,9 +17,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import java.util.Arrays;
-import static org.springframework.security.config.Customizer.withDefaults;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+
+import java.util.Arrays;
+
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -35,29 +37,33 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         JwtRequestFilter jwtRequestFilter = applicationContext.getBean(JwtRequestFilter.class);
+
         http.cors(withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Permite el login sin autenticación
+                        // Permitir login sin autenticación
                         .requestMatchers("/api/auth/login").permitAll()
-                        // Reglas basadas en roles
-                        .requestMatchers("/api/clientes").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers("/api/empleados").hasAnyAuthority("ADMINISTRADOR")
-                        .requestMatchers("/api/membresias").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers("/api/pagos").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers("/api/productos").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO", "CLIENTE") 
-                        // El resto de los endpoints requieren autenticación (pero no se especifica el rol)
-                        .requestMatchers("/api/**").authenticated()
-                        .anyRequest().authenticated())
+
+                        // Permitir clientes sin token (solo mientras pruebas)
+                        .requestMatchers("/api/clientes/**").permitAll()
+
+                        // Ejemplo de rutas con roles
+                        .requestMatchers("/api/empleados/**").hasAnyAuthority("ADMINISTRADOR")
+                        .requestMatchers("/api/membresias/**").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
+                        .requestMatchers("/api/pagos/**").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
+
+                        // Cualquier otra ruta requiere autenticación
+                        .anyRequest().authenticated()
+                )
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws
-            Exception {
-        return authenticationConfiguration.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
     }
 
     @Bean
@@ -73,7 +79,7 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*"));
+        configuration.setAllowedOrigins(Arrays.asList("*")); // Permitir todas las peticiones (para desarrollo)
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
