@@ -116,4 +116,12 @@ public class PersonaService {
     public Persona obtenerPorId(Long id) {
         return personaRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Persona no encontrada"));
     }
+
+    @Transactional(readOnly = true)
+    public List<Persona> searchPersonas(String searchTerm) {
+        // Usamos el método definido en el repositorio para buscar en 3 campos
+        return personaRepository.findByNombreContainingIgnoreCaseOrApellidoContainingIgnoreCaseOrCorreoContainingIgnoreCase(
+            searchTerm, searchTerm, searchTerm
+        );
+    }
 }
