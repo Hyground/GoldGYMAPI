@@ -1,10 +1,12 @@
 package com.goldgym.api.controllers;
 
 import com.goldgym.api.dto.request.VentaRequestDTO;
+import com.goldgym.api.dto.response.VentaResponseDTO;
 import com.goldgym.api.entities.Venta;
 import com.goldgym.api.services.VentaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize; // IMPORT NECESARIO
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,9 +18,13 @@ public class VentaController {
 
     private final VentaService ventaService;
 
-    @PostMapping
-    public ResponseEntity<Venta> crear(@RequestBody VentaRequestDTO ventaRequest) {
-        return ResponseEntity.ok(ventaService.crear(ventaRequest));
+    @PostMapping // <-- ESTE MÉTODO ES EL QUE FALLA CON 403
+    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')") // SOLUCIÓN: Solo Admin y Empleado pueden crear ventas
+    public ResponseEntity<Venta> crear(@RequestBody VentaRequestDTO ventaDTO) { 
+        // Asumo que el método crear del controller recibe un DTO o la entidad final
+        // Debes ajustar la firma si recibe la entidad Venta directamente
+        Venta venta = ventaService.crear(ventaDTO); 
+        return ResponseEntity.ok(venta);
     }
 
     @PutMapping("/{id}")
@@ -33,8 +39,9 @@ public class VentaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Venta>> listar() {
-        return ResponseEntity.ok(ventaService.listar());
+    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
+    public ResponseEntity<List<VentaResponseDTO>> listar() {
+        return ResponseEntity.ok(ventaService.listarVentasDTO());
     }
 
     @GetMapping("/{id}")

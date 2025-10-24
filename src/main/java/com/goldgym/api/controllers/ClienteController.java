@@ -1,5 +1,6 @@
 package com.goldgym.api.controllers;
 
+import com.goldgym.api.dto.request.ClienteRequestDTO;
 import com.goldgym.api.dto.response.ClienteResponseDTO;
 import com.goldgym.api.entities.Cliente;
 import com.goldgym.api.services.ClienteService;
@@ -27,8 +28,8 @@ public class ClienteController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
-    public ResponseEntity<Cliente> actualizar(@PathVariable Long id, @RequestBody Cliente cliente) {
-        return ResponseEntity.ok(clienteService.actualizar(id, cliente));
+    public ResponseEntity<Cliente> actualizar(@PathVariable Long id, @RequestBody ClienteRequestDTO clienteRequestDTO) {
+        return ResponseEntity.ok(clienteService.actualizar(id, clienteRequestDTO));
     }
 
     @DeleteMapping("/{id}")
