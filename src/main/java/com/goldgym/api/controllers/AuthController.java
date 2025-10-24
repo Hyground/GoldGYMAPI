@@ -37,6 +37,6 @@ public LoginResponse login(@RequestBody LoginRequest loginRequest) {
             .toList();
 
     // Retornar el token Y los roles
-    return new LoginResponse(token, roles); 
+   return new LoginResponse(token, roles, usuario.getUsername());
 }
 }

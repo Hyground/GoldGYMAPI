@@ -12,4 +12,5 @@ import java.util.List; // Importar List
 public class LoginResponse {
     private String token;
     private List<String> roles; // NUEVO CAMPO
+    private String username;
 }
