@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,19 +25,19 @@ public class AuthController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/login")
-public LoginResponse login(@RequestBody LoginRequest loginRequest) {
-    authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+    public LoginResponse login(@RequestBody LoginRequest loginRequest) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
-    final UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
-    final String token = jwtUtil.generateToken(userDetails);
-    
-    // Extraer los roles del UserDetails
-    List<String> roles = userDetails.getAuthorities().stream()
-            .map(grantedAuthority -> grantedAuthority.getAuthority())
-            .toList();
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getUsername());
+        final String token = jwtUtil.generateToken(userDetails);
 
-    // Retornar el token Y los roles
-   return new LoginResponse(token, roles, usuario.getUsername());
-}
+        // Extraer los roles del UserDetails
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(grantedAuthority -> grantedAuthority.getAuthority())
+                .collect(Collectors.toList());
+
+        // Retornar el token y el nombre de usuario
+        return new LoginResponse(token, roles, userDetails.getUsername());
+    }
 }
