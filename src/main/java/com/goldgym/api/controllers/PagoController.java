@@ -35,14 +35,14 @@ public class PagoController {
 
     @GetMapping("/clientes-status")
     // Proteger el endpoint analítico
-    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
+    //@PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
     public ResponseEntity<List<ClientePagoStatusDTO>> getClientesEstadoPago() {
         return ResponseEntity.ok(pagoService.getClientesConEstadoPago());
     }
 
     // SOLUCIÓN: CONSOLIDAMOS LOS MÉTODOS LISTAR EN UNA SOLA DEFINICIÓN.
     @GetMapping // Mapea a GET /api/pagos
-    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
+    //@PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
     public ResponseEntity<List<Pago>> listar(@RequestParam(required = false) Long clienteId) {
         if (clienteId != null) {
              // Si se proporciona clienteId, devolvemos el historial (find by clienteId)

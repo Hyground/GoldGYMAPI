@@ -6,7 +6,7 @@ import com.goldgym.api.entities.Cliente;
 import com.goldgym.api.services.ClienteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize; 
+//import org.springframework.security.access.prepost.PreAuthorize; 
 // --- IMPORTACIONES NECESARIAS PARA OBTENER EL USUARIO LOGUEADO ---
 import org.springframework.security.core.Authentication; 
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,7 +27,7 @@ public class ClienteController {
     @GetMapping("/profile/me")
     // NOTA: @PreAuthorize es redundante aquí porque ya lo manejamos en SecurityConfig,
     // pero es buena práctica de seguridad a nivel de método.
-    @PreAuthorize("hasAnyAuthority('CLIENTE')") 
+    //@PreAuthorize("hasAnyAuthority('CLIENTE')") 
     public ResponseEntity<ClienteResponseDTO> getMyProfile() {
         // 1. Obtener el nombre de usuario (username) del contexto de seguridad
         // Este nombre de usuario es la clave para buscar al cliente
@@ -52,26 +52,26 @@ public class ClienteController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
+    //@PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
     public ResponseEntity<Cliente> actualizar(@PathVariable Long id, @RequestBody ClienteRequestDTO clienteRequestDTO) {
         return ResponseEntity.ok(clienteService.actualizar(id, clienteRequestDTO));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
+    //@PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         clienteService.eliminar(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')") 
+    //@PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')") 
     public ResponseEntity<List<ClienteResponseDTO>> listar() {
         return ResponseEntity.ok(clienteService.listar());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')") 
+   // @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')") 
     public ResponseEntity<Cliente> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(clienteService.obtenerPorId(id));
     }

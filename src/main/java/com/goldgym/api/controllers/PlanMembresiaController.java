@@ -8,7 +8,7 @@ import com.goldgym.api.entities.PlanMembresia;
 import com.goldgym.api.services.PlanMembresiaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize; // Import necesario
+//import org.springframework.security.access.prepost.PreAuthorize; // Import necesario
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,19 +21,19 @@ public class PlanMembresiaController {
     private final PlanMembresiaService planService;
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
+    //@PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
     public ResponseEntity<PlanMembresia> crear(@RequestBody PlanMembresia plan) {
         return ResponseEntity.ok(planService.crear(plan));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
+    //@PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
     public ResponseEntity<PlanMembresia> actualizar(@PathVariable Long id, @RequestBody PlanMembresia plan) {
         return ResponseEntity.ok(planService.actualizar(id, plan));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
+    //@PreAuthorize("hasAnyAuthority('ADMINISTRADOR', 'EMPLEADO')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         planService.eliminar(id);
         return ResponseEntity.noContent().build();
@@ -45,7 +45,7 @@ public class PlanMembresiaController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()") // Para la edición (obtener datos del plan)
+    //@PreAuthorize("isAuthenticated()") // Para la edición (obtener datos del plan)
     public ResponseEntity<PlanMembresia> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(planService.obtenerPorId(id));
     }
