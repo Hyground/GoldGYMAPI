@@ -4,43 +4,32 @@ import lombok.Data;
 
 @Data
 public class ClienteResponseDTO {
+    
+    // Campos de Cliente
     private Long id;
     private String codigoCliente;
     private Boolean activo;
+    private String fechaInicio; // Asegúrate de incluir este campo del ClienteService
 
-    // Información adicional de persona (en lugar de devolver toda la entidad)
+    // Campos de Resumen (ya existen)
     private String nombrePersona;
     private String emailPersona;
-    public void setApellido(String apellido) {
-       
-        throw new UnsupportedOperationException("Unimplemented method 'setApellido'");
-    }
-    public void setTelefono(String telefono) {
-       
-        throw new UnsupportedOperationException("Unimplemented method 'setTelefono'");
-    }
-    public void setCorreo(String correo) {
-      
-        throw new UnsupportedOperationException("Unimplemented method 'setCorreo'");
-    }
-    public void setFechaNacimiento(Object object) {
-        
-        throw new UnsupportedOperationException("Unimplemented method 'setFechaNacimiento'");
-    }
-    public void setSexo(String sexo) {
-
-        throw new UnsupportedOperationException("Unimplemented method 'setSexo'");
-    }
-    public void setEstadoCivil(String estadoCivil) {
-      
-        throw new UnsupportedOperationException("Unimplemented method 'setEstadoCivil'");
-    }
-    public void setDireccion(String direccion) {
-      
-        throw new UnsupportedOperationException("Unimplemented method 'setDireccion'");
-    }
-    public void setNotas(String notas) {
-       
-        throw new UnsupportedOperationException("Unimplemented method 'setNotas'");
-    }
+    
+    // --- CAMPOS DETALLADOS DE PERSONA (AÑADIDOS PARA EL DASHBOARD CLIENTE) ---
+    // Lombok (@Data) generará los Getters y Setters CORRECTOS para estos campos.
+    
+    private String nombre;
+    private String apellido;
+    private String correo;
+    private String telefono;
+    private String fechaNacimiento; 
+    private String sexo;
+    private String estadoCivil;
+    private String direccion;
+    private String telefonoEmergencia;
+    private String notas;
+    // --- FIN CAMPOS DETALLADOS ---
+    
+    // Los métodos setApellido, setTelefono, etc., han sido eliminados.
+    // @Data se encargará de generarlos correctamente.
 }
