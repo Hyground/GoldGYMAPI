@@ -61,6 +61,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/usuarios/**").hasAuthority("ADMINISTRADOR")
                         // Permiso para que el admin vea la lista de personas en los modales
                         .requestMatchers(HttpMethod.GET, "/api/personas/**").hasAuthority("ADMINISTRADOR") 
+                        // --- AÑADIR ESTA LÍNEA ---
+                        .requestMatchers(HttpMethod.POST, "/api/personas/unified").hasAuthority("ADMINISTRADOR") 
 
                         
                         // --- 4. RUTAS COMPARTIDAS Y DE ADMIN/EMPLEADO ---
@@ -116,4 +118,5 @@ public class SecurityConfig {
         return source;
     }
 }
+
 
