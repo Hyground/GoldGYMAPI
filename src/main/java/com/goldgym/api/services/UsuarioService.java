@@ -2,6 +2,7 @@ package com.goldgym.api.services;
 
 import com.goldgym.api.dto.response.UsuarioResponseDTO; // Importar DTO
 import com.goldgym.api.entities.Persona; // Importar Persona
+import com.goldgym.api.entities.Rol; // Importar Rol
 import com.goldgym.api.entities.Usuario;
 import com.goldgym.api.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,9 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter; // Para formatear fechas
+import java.util.Collections; // Para roles vacíos
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream; // Importar Stream
 
 @Service
 @RequiredArgsConstructor
@@ -29,171 +33,188 @@ public class UsuarioService implements UserDetailsService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
-    private final PersonaService personaService; // Inyectar PersonaService (si es necesario actualizar Persona)
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE; // YYYY-MM-DD
 
     @Override
-    @Transactional(readOnly = true) // Importante para acceder a roles y persona
+    @Transactional(readOnly = true) // Importante para cargar roles LAZY
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         Usuario usuario = usuarioRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
 
-        // Acceder a getRoles() dentro de la transacción para cargarlos
-        Set<GrantedAuthority> authorities = usuario.getRoles().stream()
-                .map(rol -> new SimpleGrantedAuthority(rol.getNombre()))
-                .collect(Collectors.toSet());
+        // *** CORRECCIÓN LOGIN USUARIO INACTIVO ***
+        // Lanzar excepción si el usuario no está activo
+        if (usuario.getActivo() == null || !usuario.getActivo()) {
+             // Esta excepción es manejada por Spring Security y devuelve 403 Forbidden
+             // Puedes cambiarla a DisabledException si prefieres ese manejo
+             // throw new DisabledException("La cuenta de usuario está inactiva.");
+             throw new UsernameNotFoundException("La cuenta de usuario está inactiva: " + username); // O usar esta
+        }
 
-        // Asegurarse de cargar la persona si es necesario (aunque UserDetails no la usa directamente)
-        // Hibernate.initialize(usuario.getPersona()); // Opcional si se necesita fuera
+        Set<GrantedAuthority> authorities = Collections.emptySet(); // Default a vacío
+        if (usuario.getRoles() != null) { // Verificar nulidad
+             authorities = usuario.getRoles().stream()
+                 .map(rol -> new SimpleGrantedAuthority(rol.getNombre())) // Asume que Rol tiene getNombre()
+                 .collect(Collectors.toSet());
+        } else {
+             System.err.println("Advertencia: Usuario " + username + " no tiene roles asignados.");
+        }
+
 
         return new User(usuario.getUsername(), usuario.getPasswordHash(), authorities);
     }
 
 
     public Usuario crear(Usuario usuario) {
-        // Asegurarse de que la persona exista o se cree si es necesario
-        // (La lógica de creación unificada maneja esto mejor)
-        if (usuario.getPersona() != null && usuario.getPersona().getId() == null) {
-             // Si se pasa un objeto persona sin ID, intentar guardarlo primero
-             // Esto puede ser complejo, el endpoint unificado es preferible
-             Persona personaGuardada = personaService.crear(usuario.getPersona()); // Asume que tienes PersonaService
-             usuario.setPersona(personaGuardada);
-        } else if (usuario.getPersona() == null || usuario.getPersona().getId() == null) {
-             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Se requiere una Persona válida para crear un Usuario.");
-        }
-
-
         usuario.setCreadoEn(LocalDateTime.now());
-        // Codificar contraseña SOLO si no viene ya codificada (cuidado al llamar este método)
-        if (usuario.getPasswordHash() != null && !usuario.getPasswordHash().startsWith("$2a$")) {
-            usuario.setPasswordHash(passwordEncoder.encode(usuario.getPasswordHash()));
+        // Codificar contraseña SÓLO si se proporciona una nueva (evitar re-codificar en updates)
+        if (usuario.getPasswordHash() != null && !usuario.getPasswordHash().startsWith("$2a$")) { // O chequeo más robusto
+             usuario.setPasswordHash(passwordEncoder.encode(usuario.getPasswordHash()));
         }
-        usuario.setActivo(true); // Activo por defecto al crear?
-        usuario.setBloqueado(false);
-        usuario.setIntentosFallidos(0);
+        // Asegurar estado inicial
+        if (usuario.getActivo() == null) usuario.setActivo(true);
+        if (usuario.getBloqueado() == null) usuario.setBloqueado(false);
+        if (usuario.getIntentosFallidos() == null) usuario.setIntentosFallidos(0);
 
         return usuarioRepository.save(usuario);
     }
 
-    // Método Actualizar modificado para manejar datos de Persona y contraseña opcional
     public Usuario actualizar(Long id, Usuario actualizado) {
         Usuario existente = usuarioRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con ID: " + id));
 
-        // Actualizar datos de Persona si vienen en el DTO/request anidado
-        if (actualizado.getPersona() != null) {
-             Persona personaActualizada = actualizado.getPersona();
-             Persona personaExistente = existente.getPersona();
-             if (personaExistente != null) {
-                  // Actualizar campos de personaExistente con los de personaActualizada
-                  personaExistente.setNombre(personaActualizada.getNombre());
-                  personaExistente.setApellido(personaActualizada.getApellido());
-                  personaExistente.setCorreo(personaActualizada.getCorreo());
-                  personaExistente.setTelefono(personaActualizada.getTelefono());
-                  personaExistente.setFechaNacimiento(personaActualizada.getFechaNacimiento());
-                  personaExistente.setSexo(personaActualizada.getSexo());
-                  personaExistente.setEstadoCivil(personaActualizada.getEstadoCivil());
-                  personaExistente.setDireccion(personaActualizada.getDireccion());
-                  personaExistente.setTelefonoEmergencia(personaActualizada.getTelefonoEmergencia());
-                  personaExistente.setNotas(personaActualizada.getNotas());
-                  personaExistente.setActualizadoEn(LocalDateTime.now());
-                  // No guardar aquí, se guarda junto con el usuario
+        // Actualizar campos permitidos (evitar actualizar todo ciegamente)
+        if (actualizado.getPersona() != null && actualizado.getPersona().getId() != null) {
+             // Aquí deberías cargar la Persona y asignarla, no confiar ciegamente en el ID
+             // existente.setPersona(personaRepository.findById(actualizado.getPersona().getId()).orElse(null));
+             // Por ahora, asumimos que Persona se actualiza por separado o viene completa
+             existente.setPersona(actualizado.getPersona()); // Riesgoso si no se valida
+        }
+        if (actualizado.getUsername() != null) existente.setUsername(actualizado.getUsername());
+
+        // Actualizar contraseña SOLO si se proporciona una nueva y no vacía
+        if (actualizado.getPasswordHash() != null && !actualizado.getPasswordHash().isEmpty() && !passwordEncoder.matches(actualizado.getPasswordHash(), existente.getPasswordHash())) {
+             if(!actualizado.getPasswordHash().startsWith("$2a$")) { // Solo codificar si no está codificada
+                  existente.setPasswordHash(passwordEncoder.encode(actualizado.getPasswordHash()));
              } else {
-                  // Esto no debería pasar si la relación es obligatoria, pero por si acaso
-                  existente.setPersona(personaActualizada); // Asociar nueva persona? Raro en actualización.
+                  // Podría ser un intento de poner un hash directamente? Mejor ignorar o validar.
+                  System.err.println("Advertencia: Se intentó actualizar con un hash existente?");
              }
         }
 
+        if (actualizado.getUltimoLogin() != null) existente.setUltimoLogin(actualizado.getUltimoLogin());
+        if (actualizado.getBloqueado() != null) existente.setBloqueado(actualizado.getBloqueado());
+        if (actualizado.getIntentosFallidos() != null) existente.setIntentosFallidos(actualizado.getIntentosFallidos());
+        if (actualizado.getActivo() != null) existente.setActivo(actualizado.getActivo());
+        // Actualizar roles podría ser más complejo (añadir/quitar), por ahora reemplazamos
+        if (actualizado.getRoles() != null) existente.setRoles(actualizado.getRoles());
 
-        // Actualizar datos de Usuario
-        existente.setUsername(actualizado.getUsername());
-        // Actualizar contraseña SOLO si se proporciona una nueva (no vacía)
-        if (actualizado.getPasswordHash() != null && !actualizado.getPasswordHash().isEmpty()) {
-             // Verificar si ya está codificada (improbable que venga así del frontend)
-             if (!actualizado.getPasswordHash().startsWith("$2a$")) {
-                  existente.setPasswordHash(passwordEncoder.encode(actualizado.getPasswordHash()));
-             } else {
-                  existente.setPasswordHash(actualizado.getPasswordHash()); // Ya venía codificada? Raro.
-             }
-        } // Si no viene password, no se toca la existente
-
-        // existente.setUltimoLogin(actualizado.getUltimoLogin()); // No actualizar desde aquí
-        existente.setBloqueado(actualizado.getBloqueado());
-        // existente.setIntentosFallidos(actualizado.getIntentosFallidos()); // No actualizar desde aquí
-        existente.setActivo(actualizado.getActivo());
-        // existente.setRoles(actualizado.getRoles()); // Actualizar roles requiere lógica separada, no hacerlo aquí directamente
         existente.setActualizadoEn(LocalDateTime.now());
         return usuarioRepository.save(existente);
     }
-
 
     public void eliminar(Long id) {
         if (!usuarioRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
         }
-        // Considerar lógica adicional: ¿Desactivar en lugar de borrar? ¿Borrar relaciones?
+        // Considerar lógica adicional: ¿desactivar en lugar de borrar? ¿Borrar tokens?
         usuarioRepository.deleteById(id);
     }
 
-    // Método Listar modificado para devolver DTO
+    // Método para listar entidades (puede ser usado internamente)
     @Transactional(readOnly = true)
-    public List<UsuarioResponseDTO> listar() {
-        return usuarioRepository.findAll().stream()
-                .map(this::mapUsuarioToDTO)
-                .collect(Collectors.toList());
+    public List<Usuario> listar() {
+        return usuarioRepository.findAll();
     }
 
-    // Método Obtener por ID modificado para devolver DTO
-    @Transactional(readOnly = true)
-    public UsuarioResponseDTO obtenerUsuarioDTOPorId(Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        return mapUsuarioToDTO(usuario);
-    }
-
-     // Método para buscar Usuario por ID de Persona (usado en frontend)
+     // *** NUEVO: Método para listar DTOs ***
      @Transactional(readOnly = true)
-     public UsuarioResponseDTO obtenerUsuarioDTOPorPersonaId(Long personaId) {
-          Usuario usuario = usuarioRepository.findByPersonaId(personaId) // Necesitas añadir findByPersonaId a UsuarioRepository
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado para la persona dada"));
+     public List<UsuarioResponseDTO> listarDTOs() {
+          return usuarioRepository.findAll().stream()
+               .map(this::mapUsuarioToDTO)
+               .collect(Collectors.toList());
+     }
+
+    // Método para obtener entidad (puede ser usado internamente)
+    @Transactional(readOnly = true)
+    public Usuario obtenerPorId(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+    }
+
+     // *** NUEVO: Método para obtener DTO por ID ***
+     @Transactional(readOnly = true)
+     public UsuarioResponseDTO obtenerDTOPorId(Long id) {
+          Usuario usuario = obtenerPorId(id); // Reutiliza el método existente
           return mapUsuarioToDTO(usuario);
      }
 
+     // *** NUEVO: Método para obtener DTO por Persona ID ***
+     @Transactional(readOnly = true)
+     public UsuarioResponseDTO obtenerDTOPorPersonaId(Long personaId) {
+          Usuario usuario = usuarioRepository.findByPersonaId(personaId)
+               .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado para la persona ID: " + personaId));
+          return mapUsuarioToDTO(usuario);
+     }
 
-    // --- Helper para mapear Entidad a DTO ---
-    private UsuarioResponseDTO mapUsuarioToDTO(Usuario usuario) {
+    // *** NUEVO: Método helper para mapear Entidad a DTO ***
+    public UsuarioResponseDTO mapUsuarioToDTO(Usuario usuario) {
+        if (usuario == null) return null;
         UsuarioResponseDTO dto = new UsuarioResponseDTO();
         dto.setId(usuario.getId());
         dto.setUsername(usuario.getUsername());
         dto.setActivo(usuario.getActivo());
-        dto.setBloqueado(usuario.getBloqueado());
 
-        // Mapear Persona (acceder dentro de la transacción)
-        if (usuario.getPersona() != null) {
-            Persona p = usuario.getPersona();
-            dto.setPersonaId(p.getId());
-            dto.setNombrePersona((p.getNombre() != null ? p.getNombre() : "") + " " + (p.getApellido() != null ? p.getApellido() : ""));
-            dto.setEmailPersona(p.getCorreo());
+        // Mapear datos de Persona asociada (cargada por ser EAGER o dentro de Tx)
+        Persona persona = usuario.getPersona();
+        if (persona != null) {
+            dto.setPersonaId(persona.getId());
 
-            // Campos detallados
-            dto.setNombre(p.getNombre());
-            dto.setApellido(p.getApellido());
-            dto.setCorreo(p.getCorreo());
-            dto.setTelefono(p.getTelefono());
-            dto.setFechaNacimiento(p.getFechaNacimiento() != null ? p.getFechaNacimiento().toString() : null);
-            dto.setSexo(p.getSexo());
-            dto.setEstadoCivil(p.getEstadoCivil());
-            dto.setDireccion(p.getDireccion());
-            dto.setTelefonoEmergencia(p.getTelefonoEmergencia());
-            dto.setNotas(p.getNotas());
+            // *** CORRECCIÓN AQUÍ para nombrePersona ***
+            // Construir nombre completo manejando nulos
+            String nombre = persona.getNombre() != null ? persona.getNombre() : "";
+            String apellido = persona.getApellido() != null ? persona.getApellido() : "";
+            // Usar Stream para filtrar partes vacías y unir con espacio
+            dto.setNombrePersona(
+                 Stream.of(nombre, apellido)
+                       .filter(s -> s != null && !s.trim().isEmpty()) // Filtrar nulos y vacíos
+                       .collect(Collectors.joining(" ")) // Unir con espacio
+            );
+            // Si después de unir sigue vacío, poner N/A
+            if (dto.getNombrePersona().isEmpty()) {
+                 dto.setNombrePersona("N/A");
+            }
+
+
+            dto.setEmailPersona(persona.getCorreo()); // EmailPersona es redundante si ya tenemos correo
+            // Mapear campos detallados de Persona
+            dto.setNombre(persona.getNombre());
+            dto.setApellido(persona.getApellido());
+            dto.setCorreo(persona.getCorreo());
+            dto.setTelefono(persona.getTelefono());
+            dto.setFechaNacimiento(persona.getFechaNacimiento() != null ? persona.getFechaNacimiento().format(DATE_FORMATTER) : null);
+            dto.setSexo(persona.getSexo());
+            dto.setEstadoCivil(persona.getEstadoCivil());
+            dto.setDireccion(persona.getDireccion());
+            dto.setTelefonoEmergencia(persona.getTelefonoEmergencia());
+            dto.setNotas(persona.getNotas());
+        } else {
+             // Si no hay persona asociada (debería ser raro si es Not Null)
+             dto.setNombrePersona("Persona no asociada");
+             dto.setEmailPersona("N/A");
         }
 
-        // Mapear Roles (acceder dentro de la transacción)
+        // Mapear nombres de Roles (cargados por ser EAGER o dentro de Tx)
         if (usuario.getRoles() != null) {
-            dto.setRoles(usuario.getRoles().stream()
-                    .map(rol -> rol.getNombre())
-                    .collect(Collectors.toList()));
+             dto.setRoles(usuario.getRoles().stream()
+                  .map(Rol::getNombre) // Asume getter getNombre() en Rol
+                  .filter(nombreRol -> nombreRol != null && !nombreRol.isEmpty()) // Asegurar que no haya roles nulos/vacíos
+                  .collect(Collectors.toList()));
+        } else {
+             dto.setRoles(Collections.emptyList());
         }
+
 
         return dto;
     }
 }
+

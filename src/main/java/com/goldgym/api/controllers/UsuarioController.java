@@ -16,22 +16,25 @@ public class UsuarioController {
 
     private final UsuarioService usuarioService;
 
-    // Crear sigue aceptando Entidad (simplificado, endpoint unificado es mejor)
-    // Pero podría devolver DTO para consistencia
+    // Crear sigue recibiendo la Entidad, pero devuelve DTO
     @PostMapping
     public ResponseEntity<UsuarioResponseDTO> crear(@RequestBody Usuario usuario) {
+        // Asumiendo que `crear` ahora devuelve Usuario, lo mapeamos
         Usuario nuevoUsuario = usuarioService.crear(usuario);
-        // Mapear a DTO antes de devolver (necesitas el método map en UsuarioService)
-        // O hacer que crear devuelva DTO directamente
-        return ResponseEntity.ok(usuarioService.obtenerUsuarioDTOPorId(nuevoUsuario.getId())); // Recargar para obtener DTO
+        return ResponseEntity.ok(usuarioService.mapUsuarioToDTO(nuevoUsuario)); // Mapear a DTO
     }
 
-    // Actualizar acepta Entidad (debería aceptar DTO Request) y devuelve DTO
+    // Actualizar recibe Entidad (o un RequestDTO si prefieres), devuelve DTO
     @PutMapping("/{id}")
     public ResponseEntity<UsuarioResponseDTO> actualizar(@PathVariable Long id, @RequestBody Usuario usuario) {
-        // La lógica de actualización ahora está en el Service
+         // Asegurarse que el ID en el path coincide con el del body si existe
+         if (usuario.getId() != null && !usuario.getId().equals(id)) {
+              // Considerar lanzar BadRequestException
+              return ResponseEntity.badRequest().build();
+         }
+         usuario.setId(id); // Asegurar ID correcto
         Usuario actualizado = usuarioService.actualizar(id, usuario);
-        return ResponseEntity.ok(usuarioService.obtenerUsuarioDTOPorId(actualizado.getId())); // Recargar para DTO
+        return ResponseEntity.ok(usuarioService.mapUsuarioToDTO(actualizado)); // Mapear a DTO
     }
 
     @DeleteMapping("/{id}")
@@ -40,21 +43,21 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
-    // Listar devuelve Lista de DTOs
+    // Listar ahora devuelve DTO
     @GetMapping
     public ResponseEntity<List<UsuarioResponseDTO>> listar() {
-        return ResponseEntity.ok(usuarioService.listar());
+        return ResponseEntity.ok(usuarioService.listarDTOs()); // Llamar al nuevo método que devuelve DTOs
     }
 
-    // Obtener por ID devuelve DTO
+    // Obtener por ID ahora devuelve DTO
     @GetMapping("/{id}")
     public ResponseEntity<UsuarioResponseDTO> obtenerPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(usuarioService.obtenerUsuarioDTOPorId(id));
+        return ResponseEntity.ok(usuarioService.obtenerDTOPorId(id)); // Llamar al nuevo método que devuelve DTO
     }
 
-     // Nuevo endpoint para buscar por personaId (usado en frontend para editar Cliente/Empleado)
-     @GetMapping("/por-persona/{personaId}")
-     public ResponseEntity<UsuarioResponseDTO> obtenerPorPersonaId(@PathVariable Long personaId) {
-          return ResponseEntity.ok(usuarioService.obtenerUsuarioDTOPorPersonaId(personaId));
-     }
+    // Nuevo endpoint para buscar Usuario por Persona ID (usado en edición Cliente/Empleado)
+    @GetMapping("/por-persona/{personaId}")
+    public ResponseEntity<UsuarioResponseDTO> obtenerPorPersonaId(@PathVariable Long personaId) {
+        return ResponseEntity.ok(usuarioService.obtenerDTOPorPersonaId(personaId));
+    }
 }

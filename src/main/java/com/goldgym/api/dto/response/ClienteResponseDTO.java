@@ -4,32 +4,30 @@ import lombok.Data;
 
 @Data
 public class ClienteResponseDTO {
-    
+
     // Campos de Cliente
     private Long id;
-    private String codigoCliente;
+    private String codigoCliente; // Cambiado de 'codigo' para claridad
     private Boolean activo;
-    private String fechaInicio; // Asegúrate de incluir este campo del ClienteService
+    private String fechaInicio; // Como String YYYY-MM-DD
 
-    // Campos de Resumen (ya existen)
-    private String nombrePersona;
-    private String emailPersona;
-    
-    // --- CAMPOS DETALLADOS DE PERSONA (AÑADIDOS PARA EL DASHBOARD CLIENTE) ---
-    // Lombok (@Data) generará los Getters y Setters CORRECTOS para estos campos.
-    
+    // --- ID de Persona ---
+    private Long personaId; // <-- AÑADIDO
+
+    // --- Campos de Persona (Planos) ---
     private String nombre;
     private String apellido;
-    private String correo;
+    private String correo; // (emailPersona ya no es necesario si tenemos correo)
     private String telefono;
-    private String fechaNacimiento; 
+    private String fechaNacimiento; // Como String YYYY-MM-DD
     private String sexo;
     private String estadoCivil;
     private String direccion;
     private String telefonoEmergencia;
     private String notas;
-    // --- FIN CAMPOS DETALLADOS ---
-    
-    // Los métodos setApellido, setTelefono, etc., han sido eliminados.
-    // @Data se encargará de generarlos correctamente.
+
+    // --- Campos Combinados (Opcional, si la UI los necesita así) ---
+    private String nombrePersona; // Nombre completo (calculado en el Service)
+    private String emailPersona; // Email (calculado en el Service, igual a correo)
+
 }
