@@ -2,9 +2,12 @@ package com.goldgym.api.repository;
 
 import com.goldgym.api.entities.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.Optional;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByUsername(String username);
+
+    // --- MÉTODO AÑADIDO ---
+    // Para buscar el usuario asociado a una persona
+    Optional<Usuario> findByPersonaId(Long personaId);
 }
