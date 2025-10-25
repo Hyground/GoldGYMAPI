@@ -36,7 +36,7 @@ public class SecurityConfig {
         this.applicationContext = applicationContext;
     }
 
-    // --- ESTE ES EL MÉTODO CORREGIDO ---
+    // --- ESTE ES EL MÉTODO CORREGIDO Y FUSIONADO ---
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         JwtRequestFilter jwtRequestFilter = applicationContext.getBean(JwtRequestFilter.class);
@@ -47,32 +47,37 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         
                         // --- 1. RUTAS PÚBLICAS ---
-                        // Permitir login sin autenticación
                         .requestMatchers("/api/auth/login").permitAll()
 
-                        // --- 2. RUTAS DE CLIENTE ---
-                        // (Reglas específicas deben ir ANTES que las generales)
-                        // Permisos para ver su dashboard
+                        // --- 2. RUTAS ESPECÍFICAS DE CLIENTE ---
+                        // (Tus reglas para el dashboard de cliente)
                         .requestMatchers(HttpMethod.GET, "/api/clientes/profile/me").hasAnyAuthority("CLIENTE")
                         .requestMatchers(HttpMethod.GET, "/api/pagos/status/me").hasAnyAuthority("CLIENTE")
                         .requestMatchers(HttpMethod.GET, "/api/pagos/historial/me").hasAnyAuthority("CLIENTE")
                         
-                        // Permisos para la tienda
+                        // --- 3. RUTAS DEL PANEL DE ADMIN (LAS QUE FALTABAN) ---
+                        // (Estas reglas solucionan los errores 403 del admin panel)
+                        .requestMatchers("/api/dashboard/**").hasAuthority("ADMINISTRADOR")
+                        .requestMatchers("/api/usuarios/**").hasAuthority("ADMINISTRADOR")
+                        // Permiso para que el admin vea la lista de personas en los modales
+                        .requestMatchers(HttpMethod.GET, "/api/personas/**").hasAuthority("ADMINISTRADOR") 
+
+                        
+                        // --- 4. RUTAS COMPARTIDAS Y DE ADMIN/EMPLEADO ---
+                        // (Tus reglas que ya tenías)
                         .requestMatchers(HttpMethod.GET, "/api/productos").hasAnyAuthority("CLIENTE", "ADMINISTRADOR", "EMPLEADO")
                         .requestMatchers(HttpMethod.POST, "/api/ventas").hasAnyAuthority("CLIENTE", "ADMINISTRADOR", "EMPLEADO")
-
-                        // Permiso para que el cliente edite SU PROPIO perfil (el controlador debe validar que sea él mismo)
+                        
+                        // Permiso para editar personas (Admin) y para que cliente/empleado edite su propio perfil
                         .requestMatchers(HttpMethod.PUT, "/api/personas/**").hasAnyAuthority("CLIENTE", "ADMINISTRADOR", "EMPLEADO")
 
-
-                        // --- 3. RUTAS DE ADMIN/EMPLEADO ---
-                        // (Estas son tus reglas generales que ya tenías)
+                        // Reglas generales para Admin/Empleado
                         .requestMatchers("/api/clientes/**").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers("/api/empleados/**").hasAnyAuthority("ADMINISTRADOR")
+                        .requestMatchers("/api/empleados/**").hasAuthority("ADMINISTRADOR")
                         .requestMatchers("/api/membresias/**").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
                         .requestMatchers("/api/pagos/**").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO")
-                        .requestMatchers("/api/productos/**").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO") // Para POST, PUT, DELETE de productos
-                        .requestMatchers("/api/planes/**").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO") // Asumiendo que tienes este endpoint
+                        .requestMatchers("/api/productos/**").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO") // Para POST, PUT, DELETE
+                        .requestMatchers("/api/planes/**").hasAnyAuthority("ADMINISTRADOR", "EMPLEADO") 
 
                         // Cualquier otra ruta requiere autenticación
                         .anyRequest().authenticated()
@@ -111,3 +116,4 @@ public class SecurityConfig {
         return source;
     }
 }
+
